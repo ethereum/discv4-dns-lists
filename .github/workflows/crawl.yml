@@ -4,18 +4,19 @@ on:
     - cron: '0 */2 * * *'
 jobs:
   build:
-    if: github.repository == 'etclabscore/discv4-dns-lists'
+    if: github.repository == 'ethereum/discv4-dns-lists'
     name: Discv4-DNS-Crawler
     runs-on: ubuntu-latest
     env:
       ETH_DNS_DISCV4_CRAWLTIME: 30m
-      ETH_DNS_DISCV4_PARENT_DOMAIN: blockd.info
+      ETH_DNS_DISCV4_PARENT_DOMAIN: ethdisco.net
       ETH_DNS_DISCV4_KEY_PATH: ./secrets/dnskey.json
       ETH_DNS_DISCV4_KEYPASS_PATH: ./secrets/dnskey_password.txt
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       ETH_DNS_CLOUDFLARE_ZONEID: ${{ secrets.ETH_DNS_CLOUDFLARE_ZONEID }}
       ETH_DNS_DISCV4_KEY: ${{ secrets.ETH_DNS_DISCV4_KEY }}
       ETH_DNS_DISCV4_KEYPASS: ${{ secrets.ETH_DNS_DISCV4_KEYPASS }}
+
 
     steps:
     - name: Set up Go
@@ -28,30 +29,11 @@ jobs:
 
     - name: Check out code
       uses: actions/checkout@v2
-      with:
-        ref: etccore
-        token: ${{ secrets.PAT_REPO_MEOWSBITS }}
 
-    - uses: actions/checkout@v2
-      with:
-        ref: etccore
-        token: ${{ secrets.PAT_REPO_MEOWSBITS }}
-    - name: Checkout submodules
-      shell: bash
+    - name: Install dependencies
       run: |
-        # If your submodules are configured to use SSH instead of HTTPS please uncomment the following line
-        # git config --global url."https://github.com/".insteadOf "git@github.com:"
-        auth_header="$(git config --local --get http.https://github.com/.extraheader)"
-        git submodule sync --recursive
-        git -c "http.extraheader=$auth_header" -c protocol.version=2 submodule update --init --force --depth=1
-        cd core-geth
-        git fetch origin --tags
-        latest_tag="$(git describe --abbrev=0)"
-        git checkout ${latest_tag}
-        make all
-        echo "::add-path::$(pwd)/build/bin"
-        cd ..
-        git diff --quiet || { git add core-geth && git -c user.name='meows' -c user.email='b5c6@protonmail.com' commit --author='crawler <>' -m "ci update (core-geth:${latest_tag}) $GITHUB_RUN_ID:$GITHUB_RUN_NUMBER"; }
+        go get -u github.com/ethereum/go-ethereum/cmd/devp2p
+        go get -u github.com/ethereum/go-ethereum/cmd/ethkey
 
     - name: Setup secrets
       run: |
@@ -62,8 +44,6 @@ jobs:
     - name: Check env and secrets
       run: |
         ./.ci/deps.sh
-        export ETH_DNS_DISCV4_KEY_PUBLICINFO="$(cat $ETH_DNS_DISCV4_KEYPASS_PATH | ethkey inspect $ETH_DNS_DISCV4_KEY_PATH | grep -E '(Addr|Pub)')"
-        echo "$ETH_DNS_DISCV4_KEY_PUBLICINFO"
 
     - name: Crawl
       run: |
@@ -71,17 +51,21 @@ jobs:
 
     - name: Filter and sign
       run: |
-        ./.ci/filter_and_sign.sh classic kotti mordor
+        ./.ci/filter_and_sign.sh mainnet ropsten rinkeby goerli
+
+    - name: Commit and Push
+      env:
+        GITHUB_USER: FIXME
+        GITHUB_PAT: FIXME
+      run: |
+        git config --local user.name 'crawler'
+        git config --local user.email 'noreply@users.noreply.github.com'
+        git add all* les*
+        git commit --author 'crawler <>' -m "automatic update: crawl time ${ETH_DNS_DISCV4_CRAWLTIME} ci ${GITHUB_RUN_ID}:${GITHUB_RUN_NUMBER}"
+        git remote set-url origin https://${GITHUB_USER}:${GITHUB_PAT}@github.com/${GITHUB_REPOSITORY}.git
+        git push origin master
 
     - name: Deploy to DNS
       run: |
-        ./.ci/deploy.sh classic kotti mordor
+        ./.ci/deploy.sh mainnet ropsten rinkeby goerli
 
-    - name: Push
-      env:
-        GITHUB_PAT: ${{ secrets.PAT_REPO_MEOWSBITS }}
-      run: |
-        git config --local user.name 'meows'
-        git config --local user.email 'b5c6@protonmail.com'
-        git remote set-url origin https://meowsbits:${GITHUB_PAT}@github.com/${GITHUB_REPOSITORY}.git
-        git push origin etccore
