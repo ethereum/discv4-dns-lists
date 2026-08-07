@@ -1,5 +1,9 @@
 # discv4-dns-lists
 
+<!-- hy-mt2-i18n:start -->
+**English** · [中文](./README_zh-CN.md) · [日本語](./README_ja.md) · [Español](./README_es.md)
+<!-- hy-mt2-i18n:end -->
+
 This repository contains [EIP-1459][EIP-1459] node lists built by the go-ethereum devp2p
 tool. These lists are published to the ethdisco.net DNS name.
 
