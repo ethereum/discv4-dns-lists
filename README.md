@@ -1,12 +1,11 @@
 # discv4-dns-lists
 
-This repository contains [EIP-1459][EIP-1459] node lists built by the go-ethereum devp2p
-tool. These lists are published to the ethdisco.net DNS name.
+This repository contains [EIP-1459][EIP-1459] node lists for the Ethereum discovery
+network. These lists are published to the ethdisco.net DNS name.
 
-The nodes in the lists are found by crawling the Ethereum node discovery DHT. The entire
-output of the crawl is available in the `all.json` file. We create lists for specific
-blockchain networks by filtering `all.json` according to the ["eth" ENR entry value][eth-entry]
-provided by each node.
+We build the lists by crawling the Ethereum node discovery DHT. We create lists for
+specific blockchain networks by filtering the crawl output according to the
+["eth" ENR entry value][eth-entry] provided by each node.
 
 If you want your node in the list, simply run your client and make sure it is reachable
 through discovery. The crawler will pick it up and sort it into the right list
